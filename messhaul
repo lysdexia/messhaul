@@ -1,0 +1,111 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+__author__ = "khretiq@gmail.com"
+
+import os, sys, datetime, re, string
+import json
+import cherrypy
+from cherrypy.process.plugins import Daemonizer
+from couchdb import Database, Server
+from xml.etree.ElementTree import Element, SubElement, tostring
+import yaml
+from recaptcha.client import captcha
+
+# local mods
+from Local import Template, Authenticate, NewUser
+
+class Main(object):
+  
+    @cherrypy.expose
+    @cherrypy.tools.mako(filename="index.html")
+    def default(self, *args, **kwargs):
+        userid = cherrypy.session.get("userid", None)
+        if not userid:
+            if "userid" in kwargs:
+                userid = kwargs["userid"]
+        if userid:
+            return {"userid": userid}
+        return {}
+
+    # log us out, then return to main page
+    @cherrypy.expose
+    @cherrypy.tools.mako(filename="index.html")
+    def logout(self, *args, **kwargs):
+        cherrypy.lib.sessions.expire()
+        raise cherrypy.HTTPRedirect("/")
+
+    @cherrypy.expose
+    @cherrypy.tools.authenticate(allowed_groups=["gomer", "admin"]) #<-- groups in args
+    @cherrypy.tools.mako(filename="debug.html")
+    def debug(self, *args, **kwargs):
+        return {"userid": cherrypy.session["userid"]}
+
+    @cherrypy.expose
+    @cherrypy.tools.authenticate(allowed_groups=["admin"]) #<-- groups in args
+    def pizzle(self, *args, **kwargs):
+        return json.dumps(cherrypy.session.items())
+
+    @cherrypy.expose
+    @cherrypy.tools.mako(filename="login.html")
+    def login(self, *args, **kwargs):
+        # in case some logged-in clown is trying to access /login directly,
+        # return them whence they came
+        userid = cherrypy.session.get("userid", None)
+        if userid:
+            if cherrypy.session.get("login_return_to", None):
+                raise cherrypy.HTTPRedirect(cherrypy.session["login_return_to"])
+            raise cherrypy.HTTPRedirect("/")
+
+        # Establish that all requirements are met
+        if not "userid" in kwargs:
+            return {}
+
+        if not "password" in kwargs:
+            return {}
+
+        userid = kwargs["userid"]
+        password = False
+
+        # check to see if we have a username/password combination in db and 
+        # that it matches
+        db = Database(cherrypy.request.app.config["DB"]["users"])
+        results = db.view("auth/user", key = userid) 
+        if results.total_rows == 1:
+            for row in results.rows:
+                password = row.value["password"]
+                cherrypy.session["groups"] = row.value["groups"]
+                cherrypy.session["userid"] = userid
+
+        if not password == kwargs["password"]:
+            return {"error": "Authentication failed."}
+
+        # if all is copacetic, send us back to where we came from, or to "/" 
+        # this may be redundant!
+        if cherrypy.session.get("login_return_to", None):
+            raise cherrypy.HTTPRedirect(cherrypy.session["login_return_to"])
+        raise cherrypy.HTTPRedirect("/")
+
+if __name__ == "__main__":
+
+    Daemonizer(cherrypy.engine).subscribe()
+    # set base path for config that will work with daemon
+    pth = os.path.dirname(os.path.abspath(__file__))
+
+    # global configuration file 
+    conf = os.path.join(pth, "cherrypy.conf")
+    cherrypy.config.update(conf)
+
+    # app config file
+    app_conf = os.path.join(pth, "app.conf")
+    cherrypy.config.update(app_conf)
+
+    # new_user config file
+    new_user_conf = os.path.join(pth, "new_user.conf")
+    cherrypy.config.update(new_user_conf)
+
+    # mount apps
+    cherrypy.tree.mount(Main(), "/", config=app_conf)
+    cherrypy.tree.mount(NewUser.NewUser(), "/new_user", config=new_user_conf)
+
+    cherrypy.engine.start()
+    cherrypy.engine.block()

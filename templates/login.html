@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="UTF-16">
+        <link type="text/css" href="static/style.css" rel="stylesheet" /> 
+        <title>Login</title>
+    </head>
+    <body>
+        <fieldset id="login">
+            <legend>Login</legend> 
+
+            <span class="home"><a href="/">Home</a></span>
+            <br />
+            <span class="home"><a href="new_user">Register</a></span>
+
+            ${login_error()}
+            <%def name="login_error()">
+                % if error:
+                    <span class="error">${error}</span>
+                % endif
+            </%def>
+
+            <form action="/login">
+                <label for="userid-text">Userid</label>
+                <input type="text" id="userid-text" name="userid">
+                <label for="password-text">password</label>
+                <input type="password" id="password-text" name="password">
+                <input class="submit" type="submit" value="Login" \>
+            </form>
+        </fieldset>
+    </body>
+</html>
+

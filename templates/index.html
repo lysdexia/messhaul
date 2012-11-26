@@ -1,0 +1,17 @@
+<html lang="en-US">
+    <head>
+        <meta charset="UTF-16">
+        <link type="text/css" href="static/style.css" rel="stylesheet" /> 
+        <title>Hi there.</title>
+    <body>
+        ${whoami()}
+        <%def name="whoami()">
+        % if userid:
+        <span id="whoami">${userid} <a href="logout">logout</a></span>
+        % endif
+        % if not userid:
+        <a id="whoami" href="login">login</a>
+        % endif
+        </%def>
+    </body>
+</html>

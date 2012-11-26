@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="UTF-8">
+        <link type="text/css" href="static/style.css" rel="stylesheet" /> 
+        <script type="text/javascript" src="static/new_user.js">
+        </script>
+        <title>New User</title>
+    </head>
+    <body>
+        <fieldset id="login">
+            <legend>New User</legend> 
+
+            <span class="home"><a href="/">Home</a></span>
+
+            ${auth_error()}
+            <%def name="auth_error()">
+                % if error:
+                    <br />
+                    <span class="error">${error}</span>
+                % endif
+            </%def>
+
+            <form action="new_user/captcha_check">
+                <label for="email-text">Email</label>
+                <input type="text" id="email-text" name="email">
+                <label for="userid-text">Userid</label>
+                <input type="text" id="userid-text" name="userid">
+                <span class="note">Pick a password greater than 8 characters.
+                    We suggest using a pass-phrase that you can remember,
+                    and is easy to type.
+                    <a class="alert"
+                        href="http://xkcd.com/936/">What is a pass-phrase?</a>
+                </span>
+                <label for="password-text">Password</label>
+                <input type="password" id="password-text" name="password">
+                <label for="password-text-check">Repeat Password</label>
+                <input type="password"
+                id="password-text-check"
+                name="password-check">
+
+                ${display_captcha()}
+                <%def name="display_captcha()">
+                    % if captcha:
+                        <span>${captcha}</span>
+                    % endif
+                </%def>
+
+                <input class="submit" type="submit" value="Submit" id="validate-new-user" \>
+            </form>
+        </fieldset>
+    </body>
+</html>
+
